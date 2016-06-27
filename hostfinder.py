@@ -2,12 +2,12 @@
 
 import csv
 import nmap
-from yattag import Doc
-from yattag import indent
 from time import sleep
+from jinja2 import Environment, FileSystemLoader
+import sys
 
-csv_file = 'hosts.csv'
-subnet = ['192.168.1.0/24']
+csv_file = 'true_hosts.csv'
+subnets = sys.argv[1].split(',')
 timeout = 60
 
 
@@ -15,55 +15,55 @@ def get_hostlist(file):
     hosts = dict()
     with open(file, 'rt') as f:
         for row in csv.reader(f, delimiter=','):
-            name = row[0]
-            ip = row[1]
-            hosts.update({ip:name})
+            name = row[1]
+            ip = row[6]
+            hosts.update({ip: name})
     return hosts
 
 
-def get_online_ips(hosts):
+def get_online_ips(subnet):
     nm = nmap.PortScanner()
-    for subnet in hosts:
-        nm.scan(hosts=subnet, arguments='-n -sP -PE -PA21,23,80,3389')
+    # nm.scan(hosts=subnet, arguments='-n -sP -PE -PA21,23,80,3389')
+    nm.scan(hosts=subnet, arguments='-sn')
     return nm.all_hosts()
 
 
-def create_report(online_hosts, offline_hosts):
-    doc, tag, text = Doc().tagtext()
-    doc.asis('<!DOCTYPE html>')
-    with tag('html'):
-        with tag('head'):
-            with tag('meta', ('http-equiv','Content-Type'), ('content','text/html; charset=utf-8')):
-                with tag('meta', ('http-equiv', "Refresh"), ('content', timeout)):
-                    with tag('body'):
-                        with tag('p', style='font-weight:bold'): text('Online:')
-                        for ip in list(online_hosts.keys()):
-                            text('%s [%s]' % (ip, online_hosts[ip]))
-                            doc.stag('br')
-                        with tag('p', style='font-weight:bold'):text('Offline:')
-                        for ip in list(offline_hosts.keys()):
-                            text('%s [%s]' % (ip, offline_hosts[ip]))
-                            doc.stag('br')
-    with open('index.html', 'w') as html:
-        html.write(indent(doc.getvalue()))
+def create_report(online_hosts, offline_hosts, unknown_hosts):
+    env = Environment(loader=FileSystemLoader('templates'))
+    template = env.get_template('template.html')
+    parsed_report = template.render(online_hosts=online_hosts,
+                                      offline_hosts=offline_hosts,
+                                      unknown_hosts=unknown_hosts)
+    with open('index.html', 'wt') as html:
+        html.write(parsed_report)
 
 
 def main():
+
     while True:
         hostlist = get_hostlist(csv_file)
         hostlist_ips = hostlist.keys()
 
-        online_ips = get_online_ips(subnet)
-
-        online_hosts, offline_hosts = dict(), dict()
+        nonflattened_online_ips = []
+        for subnet in subnets:
+            nonflattened_online_ips.append(get_online_ips(subnet))
+        online_ips = [val for sublist in nonflattened_online_ips for val in sublist]
+        
+        online_hosts, offline_hosts, unknown_hosts = dict(), dict(), dict()
         for ip in list(hostlist_ips):
             name = hostlist[ip]
-            if ip not in online_ips:
-                offline_hosts.update({(name, ip)})
-            else:
+            if ip in online_ips:
                 online_hosts.update({(name, ip)})
+            elif ip not in online_ips:
+                offline_hosts.update({(name, ip)})
+        num = 0
+        for online_ip in online_ips:
+            if online_ip not in list(hostlist_ips):
+                num += 1
+                name = ('Неизвестный хост №%.2d' % num)
+                unknown_hosts.update({(name, online_ip)})
 
-        create_report(online_hosts,offline_hosts)
+        create_report(online_hosts, offline_hosts, unknown_hosts)
         sleep(timeout)
 
 if __name__ == '__main__':

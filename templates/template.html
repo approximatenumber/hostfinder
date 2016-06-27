@@ -1,0 +1,81 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+        "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta http-equiv="Refresh" content="60">
+    <title>Alive Hosts</title>
+
+<style type="text/css">
+    .css-serial {
+      counter-reset: serial-number;  /* Set the serial number counter to 0 */
+      text-align: center;
+     }
+    .css-serial td:first-child:before {
+      counter-increment: serial-number;  /* Increment the serial number counter */
+      content: counter(serial-number);  /* Display the counter */
+     }
+     .text {
+      text-align:  center;
+ </style>
+</head>
+<body>
+
+<div class="text">
+
+<h2>Хосты в сети:</h2>
+{% if not online_hosts %}
+    <p>...отсутствуют.</p>
+{% else %}
+<table cellpadding="5" border="1" class="css-serial" align="center">
+    <tr>
+        <th>#</th>
+        <th>Имя</th>
+        <th>IP-адрес</th>
+    </tr>
+{% for name, ip in online_hosts.items() | sort() %}
+<tr>
+    <td></td>
+    <td>{{ name }}</td>
+    <td>{{ ip }}</td>
+</tr>
+{% endfor %}
+</table>
+{% endif %}
+
+<h2>Хосты не в сети:</h2>
+<table cellpadding="5" border="1" class="css-serial" align="center">
+    <tr>
+        <th>#</th>
+        <th>Имя</th>
+        <th>IP-адрес</th>
+    </tr>
+{% for name, ip in offline_hosts.items() | sort() %}
+<tr>
+    <td></td>
+    <td>{{ name }}</td>
+    <td>{{ ip }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<h2>Неизвестные хосты в сети:</h2>
+<table cellpadding="5" border="1" class="css-serial" align="center">
+    <tr>
+        <th>#</th>
+        <th>Имя</th>
+        <th>IP-адрес</th>
+    </tr>
+{% for name, ip in unknown_hosts.items() | sort() %}
+<tr>
+    <td></td>
+    <td>{{ name }}</td>
+    <td>{{ ip }}</td>
+</tr>
+{% endfor %}
+</table>
+
+</div>
+
+</body>
+</html>
