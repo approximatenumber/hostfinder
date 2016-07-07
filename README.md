@@ -4,7 +4,11 @@
 
 Run:
 
-`python hostfinder.py 192.168.201.0/24`
+`python hostfinder.py <subnet>,<subnet>,...`
+
+Example:
+
+`python hostfinder.py 192.168.201.0/24,192.168.101.0/24`
 
 Result is saved to `index.html`, may be opened with browser:
 
